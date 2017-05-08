@@ -166,8 +166,26 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	return path, nil
 }
 
-func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
+func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (err error) {
+	swift, err := getConnInfo(endpoint)
+	if err != nil {
+		return
+	}
+	_, session, err := swift.Connect()
+	if err != nil {
+		return
+	}
+
+	_, contents, err := objectstorage.GetObject(session, file)
+	if err != nil {
+		return
+	}
+
+	_, err = os.Stdout.Write(contents)
+	if err != nil {
+		return
+	}
+	return
 }
 
 func (p SwiftPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
