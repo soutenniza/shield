@@ -72,12 +72,13 @@ import (
 	"git.openstack.org/openstack/golang-client/objectstorage/v1"
 	"git.openstack.org/openstack/golang-client/openstack"
 
+	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/plugin"
 )
 
 const (
-	DefaultDebug  = false
-	DefaultPrefix = ""
+	defaultDebug  = false
+	defaultPrefix = ""
 )
 
 func main() {
@@ -127,9 +128,26 @@ func (p SwiftPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
-	return plugin.UNIMPLEMENTED
+func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
+	var s string
+	var fail bool
+
+	requiredConfig := []string{"auth_url", "project_name", "username", "password", "container", "prefix"}
+	for _, reqConfig := range requiredConfig {
+		s, err = endpoint.StringValue(reqConfig)
+		if err != nil {
+			ansi.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
+			fail = true
+		} else {
+			ansi.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
+		}
+	}
+	if fail {
+		return fmt.Errorf("swift: invalid configuration")
+	}
+	return
 }
+
 func (p SwiftPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
@@ -228,13 +246,13 @@ func getConnInfo(e plugin.ShieldEndpoint) (info *SwiftConnectionInfo, err error)
 		return
 	}
 
-	info.PathPrefix, err = e.StringValueDefault("prefix", DefaultPrefix)
+	info.PathPrefix, err = e.StringValueDefault("prefix", defaultPrefix)
 	if err != nil {
 		return
 	}
 	info.PathPrefix = strings.TrimLeft(info.PathPrefix, "/")
 
-	info.Debug, err = e.BooleanValueDefault("debug", DefaultDebug)
+	info.Debug, err = e.BooleanValueDefault("debug", defaultDebug)
 	if err != nil {
 		return
 	}
