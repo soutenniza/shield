@@ -158,8 +158,8 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	}
 
 	headers := http.Header{}
-	object := swift.Container + "/" + path
-	if err = objectstorage.PutObject(session, &contents, baseURL+"/"+object, headers); err != nil {
+	url := baseURL + "/" + swift.Container + "/" + path
+	if err = objectstorage.PutObject(session, &contents, url, headers); err != nil {
 		panic(err)
 	}
 
@@ -171,25 +171,34 @@ func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (err 
 	if err != nil {
 		return
 	}
-	_, session, err := swift.Connect()
+	baseURL, session, err := swift.Connect()
 	if err != nil {
 		return
 	}
 
-	_, contents, err := objectstorage.GetObject(session, file)
+	url := baseURL + "/" + swift.Container + "/" + file
+	_, contents, err := objectstorage.GetObject(session, url)
 	if err != nil {
 		return
 	}
 
 	_, err = os.Stdout.Write(contents)
-	if err != nil {
-		return
-	}
 	return
 }
 
-func (p SwiftPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
+func (p SwiftPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) (err error) {
+	swift, err := getConnInfo(endpoint)
+	if err != nil {
+		return
+	}
+	baseURL, session, err := swift.Connect()
+	if err != nil {
+		return
+	}
+
+	url := baseURL + "/" + swift.Container + "/" + file
+	err = objectstorage.DeleteObject(session, url)
+	return
 }
 
 func getConnInfo(e plugin.ShieldEndpoint) (info *SwiftConnectionInfo, err error) {
