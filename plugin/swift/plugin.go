@@ -61,9 +61,16 @@ package main
 // https://github.com/openstack/golang-client/blob/master/examples/objectstorage/objectstorage.go
 
 import (
+	"bufio"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"git.openstack.org/openstack/golang-client/objectstorage/v1"
+	"git.openstack.org/openstack/golang-client/openstack"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -132,7 +139,31 @@ func (p SwiftPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 }
 
 func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+	swift, err := getConnInfo(endpoint)
+	if err != nil {
+		return "", err
+	}
+	baseURL, session, err := swift.Connect()
+	if err != nil {
+		return "", err
+	}
+
+	path := swift.genBackupPath()
+	plugin.DEBUG("Storing data in %s", path)
+
+	r := bufio.NewReader(os.Stdin)
+	contents, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+
+	headers := http.Header{}
+	object := swift.Container + "/" + path
+	if err = objectstorage.PutObject(session, &contents, baseURL+"/"+object, headers); err != nil {
+		panic(err)
+	}
+
+	return path, nil
 }
 
 func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
@@ -193,4 +224,39 @@ func (info SwiftConnectionInfo) genBackupPath() string {
 	// Remove double slashes
 	path = strings.Replace(path, "//", "/", -1)
 	return path
+}
+
+func (swift SwiftConnectionInfo) Connect() (baseURL string, session *openstack.Session, err error) {
+	creds := openstack.AuthOpts{
+		AuthUrl:     swift.AuthURL,
+		ProjectName: swift.ProjectName,
+		Username:    swift.Username,
+		Password:    swift.Password,
+	}
+	auth, err := openstack.DoAuthRequest(creds)
+	if err != nil {
+		return
+	}
+	if !auth.GetExpiration().After(time.Now()) {
+		return "", nil, fmt.Errorf("There was an error. The auth token has an invalid expiration.")
+	}
+
+	// Find the endpoint for object storage.
+	baseURL, err = auth.GetEndpoint("object-store", "")
+	if baseURL == "" || err != nil {
+		return "", nil, fmt.Errorf("object-store url not found during authentication")
+	}
+
+	// Make a new client with these creds
+	session, err = openstack.NewSession(nil, auth, nil)
+	if err != nil {
+		return "", nil, fmt.Errorf("Error crating new Session: %v", err)
+	}
+
+	_, err = objectstorage.GetAccountMeta(session, baseURL)
+	if err != nil {
+		return "", nil, fmt.Errorf("There was an error getting account metadata: %v", err)
+	}
+
+	return
 }
