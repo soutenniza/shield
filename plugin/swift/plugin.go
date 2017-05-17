@@ -161,6 +161,8 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	openstack.Debug = &swift.Debug
+
 	baseURL, session, err := swift.Connect()
 	if err != nil {
 		return "", err
@@ -177,8 +179,9 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 
 	headers := http.Header{}
 	url := baseURL + "/" + swift.Container + "/" + path
-	if err = objectstorage.PutObject(session, &contents, url, headers); err != nil {
-		panic(err)
+	err = objectstorage.PutObject(session, &contents, url, headers)
+	if err != nil {
+		return "", err
 	}
 
 	return path, nil
@@ -189,6 +192,7 @@ func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (err 
 	if err != nil {
 		return
 	}
+	openstack.Debug = &swift.Debug
 	baseURL, session, err := swift.Connect()
 	if err != nil {
 		return
