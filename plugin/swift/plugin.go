@@ -83,7 +83,7 @@ const (
 
 func main() {
 	p := SwiftPlugin{
-		Name:    "Openstack Swift Backup + Storage Plugin",
+		Name:    "OpenStack Swift Backup + Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -92,7 +92,7 @@ func main() {
 		},
 		Example: `
 {
-  "auth_url":      "host",
+  "auth_url":      "https://identity.api.rackspacecloud.com/v2.0",
   "project_name":  "openstack-project",
   "username":      "your-username",
   "password":      "secret-access-key",
@@ -132,7 +132,7 @@ func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
 	var s string
 	var fail bool
 
-	requiredConfig := []string{"auth_url", "project_name", "username", "password", "container", "prefix"}
+	requiredConfig := []string{"auth_url", "project_name", "username", "password", "container"}
 	for _, reqConfig := range requiredConfig {
 		s, err = endpoint.StringValue(reqConfig)
 		if err != nil {
