@@ -52,7 +52,7 @@ Retrieves the data from an Storage Plugin and overwrites the data in the data sy
 
 For data systems that permit full backups across a network (as most RDBMS do), nothing more is needed.  Some data systems, however, make assumptions about the environment in which they operate.  Redis, for example, always dumps its backups to local disk.  To support these data systems, we can implement the Agent Target Plugin, and a corresponding Agent Daemon that will run on the target system.  The Agent Daemon will be responsible for implementing the backup / restore options, and the Agent Target Plugin will forward the requests to it, and relay responses back to the caller.
 
-Additional information in the [Plugin README](plugin/README.md)
+Additional information in the [Plugin README](docs/README.md)
 
 ## Storage Plugins
 
@@ -67,7 +67,7 @@ Given a key returned from the store operation, retrieve the data blob.
 #### purge
 Given a key returned from the store operation, delete the stored data.
 
-Additional information in the [Plugin README](plugin/README.md)
+Additional information in the [Plugin README](docs/README.md)
 
 ## Core Daemon
 
